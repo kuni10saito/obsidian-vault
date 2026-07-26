@@ -1,0 +1,22 @@
+# Obsidian workspace/UI state (device-specific, noisy diffs)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/workspace.json.bak
+
+# Obsidian cache/local-only
+.obsidian/cache
+.obsidian/.smart-env
+
+# Trash (deleted notes Obsidian keeps around)
+.trash/
+
+# Claudian plugin local session/conversation metadata (may include titles, not vault content)
+.claudian/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor/tool junk
+*.tmp
+*.swp
