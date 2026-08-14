@@ -1,4 +1,4 @@
 ```
-bc84NjN1GyysvOvKbeMsoUzfhhbO
+bc84NjN1GyysvOvKbeMs!oUzfhhbO
 ```
 ADMIN
