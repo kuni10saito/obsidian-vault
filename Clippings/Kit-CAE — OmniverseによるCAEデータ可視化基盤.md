@@ -10,12 +10,12 @@ NVIDIA 公式の Omniverse Kit サンプルアプリ。CAE（数値解析）デ�
 
 ## 2. 技術要素
 
-| 要素 | 役割 |
-|---|---|
+| 要素                                   | 役割                                             |
+| ------------------------------------ | ---------------------------------------------- |
 | OpenUSD Schemas / File-Format Plugin | CGNS・EnSight・VTK・OpenFOAM をネイティブ読み込み（独自形式も拡張可） |
-| NVIDIA Warp | GPU 加速の可視化アルゴリズム。大規模データを対話的に探索 |
-| RTX / IndeX | サーフェス・ボリューム・パーティクルの高品質レンダリング |
-| Kit Application Framework | UI 拡張、ピクセルストリーミング、Omniverse ライブラリ群との統合 |
+| NVIDIA Warp                          | GPU 加速の可視化アルゴリズム。大規模データを対話的に探索                 |
+| RTX / IndeX                          | サーフェス・ボリューム・パーティクルの高品質レンダリング                   |
+| Kit Application Framework            | UI 拡張、ピクセルストリーミング、Omniverse ライブラリ群との統合         |
 
 ## 3. 主な機能
 - 大規模データセットの対話的探索
