@@ -99,7 +99,7 @@
     "clipperVerification": {},
     "ontologyEnabled": true,
     "ontologyFolder": "Ontology",
-    "ontologySeedPrompted": false
+    "ontologySeedPrompted": true
   },
   "conversations": [],
   "activeConversationId": null,
