@@ -1,7 +1,7 @@
 {
   "settings": {
     "apiKey": "",
-    "authMode": "oauthToken",
+    "authMode": "apiKey",
     "oauthToken": "",
     "baseUrl": "",
     "model": "claude-sonnet-5",
