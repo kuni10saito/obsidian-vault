@@ -46,7 +46,7 @@
     "embeddingModel": "nomic-embed-text",
     "embeddingEngine": "builtin",
     "builtinEmbeddingModel": "builtin:snowflake-arctic-embed-xs",
-    "semanticModelPrompted": false,
+    "semanticModelPrompted": true,
     "semanticIndexPdfs": true,
     "autoTagOnSave": true,
     "artifactBaseTags": [
