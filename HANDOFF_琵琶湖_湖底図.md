@@ -889,6 +889,62 @@ python make_terrain_usd.py --no-water            # 湖面なし
 python make_terrain_usd.py --water-alpha 0.3     # もっと透ける
 ```
 
+### 4.7.12 glTF / GLB への変換とブラウザ表示【2026-08-30】
+
+USD は Blender / Omniverse 向けで、**ブラウザや Windows 3Dビューアでは開けない**。
+`biwa_terrain_mid_deep.usdc`（陸3倍 / 水深10倍）を glTF に変換した。
+
+変換は Blender 経由（`_to_glb.py`）。USD を読んで `export_scene.gltf` で書くだけ。
+
+#### Draco 圧縮が効く
+
+| ファイル | 元 | 頂点 | Draco | サイズ |
+|---|---|---:|:-:|---:|
+| （非圧縮フル） | `_mid_deep` | 600万 | — | 338.2 MB |
+| **`biwa_terrain_deep_draco.glb`** | `_mid_deep` | **600万** | **有** | **26.4 MB** |
+| **`biwa_terrain_deep_lite.glb`** | stride4 | 150万 | 有 | **13.1 MB** |
+| `biwa_terrain_deep_lite_plain.glb` | stride4 | 150万 | 無 | 90.9 MB |
+
+**Draco で 338 → 26.4 MB、12.8倍**。幾何が支配的なので圧縮がよく効く。
+
+- **`_draco.glb` が推奨。** three.js / model-viewer / Babylon など主要な
+  Web ビューアは Draco を復号できる
+- **`_plain.glb` は互換用。** Windows 3Dビューアや一部の CAD/PowerPoint は
+  Draco を読めないので、その場合のみ使う（91 MB と重い）
+
+#### 検証（「ファイルができた」と「中身が正しい」は別）
+
+書き出した GLB を **Blender に読み戻して描画**した。
+
+- BBOX X63833 × Y79806 × Z4905、**zmin = −788** → USD と一致。
+  水深10倍が保存されている
+- 地図テクスチャ（道路・地名）が乗っている
+- **半透明の湖面が生きている**。glTF は材質の alpha blend を
+  `blend_method` から拾うので、`_to_glb.py` で Principled BSDF の
+  Alpha < 1 を見て `BLEND` を立てている。**これを忘れると湖面が
+  不透明になり、湖底が見えなくなる**
+
+#### ブラウザで回す
+
+`biwa_terrain_3d.html`（17.5 MB）を**ダブルクリックするだけ**。
+
+- `<model-viewer>`（CDN）に **GLB を base64 で埋め込んだ自己完結ファイル**。
+  ローカルの `.glb` を `src` で参照すると `file://` の CORS で弾かれるため、
+  埋め込みにした。**サーバを立てる必要がない**
+- 埋め込みは軽い `_lite.glb`（13.1 MB）のほう。600万頂点は回転が重い
+- ドラッグ=回転 / ホイール=ズーム / 右ドラッグ=平行移動
+- **CDN から `model-viewer` を読むのでオフラインでは動かない**
+
+#### 置き場所
+
+**Vault ではなく `sym/` に置いた。** Vault は約15分ごとに git 自動コミット
+されるので、17.5 MB の HTML と GLB 群を入れるとリポジトリが膨らむ。
+
+```bash
+python make_terrain_usd.py --stride 4 --ve 3 --lake-ve 10 --out _terrain_lite_deep.usdc
+blender -b -P _to_glb.py -- <入力.usdc> <出力.glb> 1     # 末尾 1 = Draco
+```
+
 ### 4.7.11 追加ファイル
 
 | ファイル | 役割 |
@@ -896,6 +952,7 @@ python make_terrain_usd.py --water-alpha 0.3     # もっと透ける
 | `fetch_terrain.py` | 地理院タイル → `terrain/dem.npz` / `terrain/map.png` |
 | `make_terrain_usd.py` | DEM＋湖底 → 地形USD（湖面・UV・テクスチャ付き） |
 | `_terrain_check.py` | Blender でUSDを読み、プリム構成を出して静止画を撮る |
+| `_to_glb.py` | USD → glTF/GLB（Blender経由、Draco 任意） |
 
 ---
 
