@@ -891,58 +891,88 @@ python make_terrain_usd.py --water-alpha 0.3     # もっと透ける
 
 ### 4.7.12 glTF / GLB への変換とブラウザ表示【2026-08-30】
 
-USD は Blender / Omniverse 向けで、**ブラウザや Windows 3Dビューアでは開けない**。
+USD は Blender / Omniverse 向けで、**ブラウザでは開けない**。
 `biwa_terrain_mid_deep.usdc`（陸3倍 / 水深10倍）を glTF に変換した。
+変換は Blender 経由（`_to_glb.py`）。
 
-変換は Blender 経由（`_to_glb.py`）。USD を読んで `export_scene.gltf` で書くだけ。
+#### 【最重要】glTF は km 単位で出す
+
+**model-viewer / three.js は数万単位のモデルを読み込めない。**
+`load` イベントが発火せず、`error` も出ず、**黙って真っ黒になる**。
+
+切り分けた結果はこうだった。
+
+| テスト | 結果 |
+|---|---|
+| 立方体 size=2（1.7 KB） | **読める** |
+| 立方体 size=80000（1.7 KB） | **読めない** |
+| 地形 64000×80000 単位（21 MB） | **読めない** |
+| 地形 ×0.001 して 64×80 単位（21 MB） | **読める** |
+
+**頂点数でもファイルサイズでもなく、ワールドスケールが原因。**
+1.7 KB の立方体でも大きくすれば落ちる。
+
+`_to_glb.py` は**既定で ×0.001 を適用**する（`transform_apply` で頂点に焼く）。
+したがって **glTF 側の単位は km**、USD 側は m。混ぜないこと。
+
+#### 【必須】`loading="eager"`
+
+model-viewer の既定は遅延読み込み（IntersectionObserver）で、
+**環境によっては読み込みが始まらない**。`loading="eager"` を必ず付ける。
 
 #### Draco 圧縮が効く
 
 | ファイル | 元 | 頂点 | Draco | サイズ |
 |---|---|---:|:-:|---:|
 | （非圧縮フル） | `_mid_deep` | 600万 | — | 338.2 MB |
-| **`biwa_terrain_deep_draco.glb`** | `_mid_deep` | **600万** | **有** | **26.4 MB** |
-| **`biwa_terrain_deep_lite.glb`** | stride4 | 150万 | 有 | **13.1 MB** |
-| `biwa_terrain_deep_lite_plain.glb` | stride4 | 150万 | 無 | 90.9 MB |
+| **`biwa_terrain_deep_draco.glb`** | `_mid_deep` | **600万** | 有 | **26.4 MB** |
+| `biwa_terrain_deep_lite.glb` | stride8 | 37.5万 | 有 | 約3 MB |
+| `biwa_terrain_deep_lite_plain.glb` | stride8 | 37.5万 | 無 | 20.9 MB |
 
-**Draco で 338 → 26.4 MB、12.8倍**。幾何が支配的なので圧縮がよく効く。
+**Draco で 338 → 26.4 MB、12.8倍。** 幾何が支配的なのでよく効く。
 
-- **`_draco.glb` が推奨。** three.js / model-viewer / Babylon など主要な
-  Web ビューアは Draco を復号できる
-- **`_plain.glb` は互換用。** Windows 3Dビューアや一部の CAD/PowerPoint は
-  Draco を読めないので、その場合のみ使う（91 MB と重い）
+**この端末には Microsoft 3D Viewer が入っており `.glb` の既定ハンドラである。**
+ただし Draco 版は `extensionsRequired = [KHR_draco_mesh_compression]` を宣言して
+いるので、**glTF 仕様上、Draco 非対応のビューアは読み込みを拒否しなければならない。**
+3D Viewer でダブルクリックしたいなら `_plain.glb` を使うこと。
 
-#### 検証（「ファイルができた」と「中身が正しい」は別）
+#### オフラインで動く単体HTML
 
-書き出した GLB を **Blender に読み戻して描画**した。
+**`biwa_terrain_3d_offline.html`（28.8 MB）をダブルクリックするだけ。**
 
-- BBOX X63833 × Y79806 × Z4905、**zmin = −788** → USD と一致。
-  水深10倍が保存されている
-- 地図テクスチャ（道路・地名）が乗っている
-- **半透明の湖面が生きている**。glTF は材質の alpha blend を
-  `blend_method` から拾うので、`_to_glb.py` で Principled BSDF の
-  Alpha < 1 を見て `BLEND` を立てている。**これを忘れると湖面が
-  不透明になり、湖底が見えなくなる**
+- `model-viewer.min.js`（935 KB）と GLB（base64）を**すべて埋め込んだ**単一ファイル。
+  `<script src>` も `<link href>` も**ゼロ**
+- model-viewer が実行時に CDN を見に行くのは **Draco デコーダ**
+  （`gstatic.com/draco/...`）と **Basis/KTX2**（`gstatic.com/basis-universal/...`）
+  の2つだけ。**非Draco + 通常JPEG なら外部アクセスは発生しない**
+- ローカルの `.glb` を `src` で参照すると `file://` の CORS で弾かれるので
+  base64 埋め込みにした。**サーバは不要**
+- 埋め込みは stride 8（37.5万頂点）。600万頂点は回転が重い
 
-#### ブラウザで回す
+#### 検証したこと・できなかったこと
 
-`biwa_terrain_3d.html`（17.5 MB）を**ダブルクリックするだけ**。
+**できた** —— GLB を Blender に読み戻して描画。BBOX と `zmin = −788` が USD と
+一致し、地図テクスチャと半透明の湖面が生きていることを確認。
+HTML 側も base64 をデコードして `glTF` マジック・`extensionsRequired = []`・
+`alphaMode = BLEND` を確認。
 
-- `<model-viewer>`（CDN）に **GLB を base64 で埋め込んだ自己完結ファイル**。
-  ローカルの `.glb` を `src` で参照すると `file://` の CORS で弾かれるため、
-  埋め込みにした。**サーバを立てる必要がない**
-- 埋め込みは軽い `_lite.glb`（13.1 MB）のほう。600万頂点は回転が重い
-- ドラッグ=回転 / ホイール=ズーム / 右ドラッグ=平行移動
-- **CDN から `model-viewer` を読むのでオフラインでは動かない**
+**できなかった** —— ヘッドレス Chrome での描画確認は**再現しない**。
+同じページが成功したり失敗したりする（仮想時間と rAF の相性と思われる）。
+一度は `load OK / dims 63.8×4.9×79.7` と地形の描画に成功しているので
+成果物側の問題ではないが、**最終確認は実ブラウザで人が開くこと。**
+
+> **教訓：「ファイルができた」と「中身が正しい」と「実環境で動く」は別。**
+> §4.5 の罠と同じ構図で、3段目が残っている。
 
 #### 置き場所
 
 **Vault ではなく `sym/` に置いた。** Vault は約15分ごとに git 自動コミット
-されるので、17.5 MB の HTML と GLB 群を入れるとリポジトリが膨らむ。
+されるので、28.8 MB の HTML と GLB 群を入れるとリポジトリが膨らむ。
 
 ```bash
-python make_terrain_usd.py --stride 4 --ve 3 --lake-ve 10 --out _terrain_lite_deep.usdc
-blender -b -P _to_glb.py -- <入力.usdc> <出力.glb> 1     # 末尾 1 = Draco
+python make_terrain_usd.py --stride 8 --ve 3 --lake-ve 10 \
+       --map terrain/map_small.jpg --out _t8.usdc
+blender -b -P _to_glb.py -- <入力.usdc> <出力.glb> <draco 0|1> <scale>
 ```
 
 ### 4.7.11 追加ファイル
