@@ -763,7 +763,7 @@ z = 標高 [m] * ve                        鉛直誇張は焼き込む
 
 ### 4.7.5 生成物【2026-08-30 再生成】
 
-**ve=3、南限拡張後**の値。`_deep` は水深だけ30倍にした表示用（§4.7.6）。
+**ve=3、南限拡張後**の値。`_deep` は水深だけ10倍にした表示用（§4.7.6）。
 
 | ファイル | stride | ve | 地形頂点 | 地形面 | 湖面頂点 | サイズ |
 |---|---:|---:|---:|---:|---:|---:|
@@ -813,8 +813,8 @@ z = 標高 * ve                          （陸）
 | `--lake-ve` | 湖底の z | 見え方 |
 |---:|---:|---|
 | 3（＝`--ve`、従来） | −59 | **平板**。basin が読めない |
-| 10 | −788 | 窪みが分かる |
-| **30**（陸3倍のさらに10倍） | **−2869** | **明確な盆地。山（+4127）と釣り合う** |
+| **10（採用）** | **−788** | **窪みが読める。誇張しすぎず自然** |
+| 30（陸3倍のさらに10倍） | −2869 | 盆地は明確だが、湖だけ別物のように浮く |
 
 比較図は `biwa/fig_lake_ve.png`（水面を隠して撮影）。
 
@@ -884,7 +884,7 @@ python fetch_terrain.py --dem-only
 python make_terrain_usd.py --stride 2 --ve 3 --out biwa_terrain_mid.usdc   # 推奨
 python make_terrain_usd.py --stride 4 --ve 3 --out biwa_terrain.usdc       # 軽量
 python make_terrain_usd.py --stride 1 --ve 3 --out biwa_terrain_hi.usdc    # 最高
-python make_terrain_usd.py --stride 2 --ve 3 --lake-ve 30 \n       --out biwa_terrain_mid_deep.usdc          # 湖内だけ深く
+python make_terrain_usd.py --stride 2 --ve 3 --lake-ve 10 \n       --out biwa_terrain_mid_deep.usdc          # 湖内だけ深く
 python make_terrain_usd.py --no-water            # 湖面なし
 python make_terrain_usd.py --water-alpha 0.3     # もっと透ける
 ```
