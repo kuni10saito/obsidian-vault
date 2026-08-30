@@ -926,7 +926,7 @@ model-viewer の既定は遅延読み込み（IntersectionObserver）で、
 |---|---|---:|:-:|---:|
 | （非圧縮フル） | `_mid_deep` | 600万 | — | 338.2 MB |
 | **`biwa_terrain_deep_draco.glb`** | `_mid_deep` | **600万** | 有 | **26.4 MB** |
-| `biwa_terrain_deep_lite.glb` | stride8 | 37.5万 | 有 | 約3 MB |
+| `biwa_terrain_deep_lite.glb` | stride8 | 37.5万 | 有 | 2.2 MB |
 | `biwa_terrain_deep_lite_plain.glb` | stride8 | 37.5万 | 無 | 20.9 MB |
 
 **Draco で 338 → 26.4 MB、12.8倍。** 幾何が支配的なのでよく効く。
