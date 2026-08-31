@@ -1055,6 +1055,59 @@ Blender では POINTCLOUD の `radius` 属性を `foreach_get/set` で書き換�
 | **01月30日** | **104.1m** | **87.7%** | **全層が一様な青＝全層循環** |
 | 05月10日 | 3.3m | 100% | 再成層。表層が暖まる |
 
+#### 動画化【2026-08-31】
+
+120フレームを PNG連番で書き出し、外部 ffmpeg で mp4 にした
+（**この Blender は FFmpeg 出力を持たない** — §2）。
+
+```bash
+blender -b -P _overlay_movie.py -- biwa_overlay60_low.usdc ov_shots/f 22 0 0.35
+python _label_movie.py ov_shots ov_lab
+ffmpeg -y -framerate 12 -i ov_lab/f%04d.png -c:v libx264 -pix_fmt yuv420p \
+       -crf 20 -movflags +faststart biwa_overturn_terrain.mp4
+```
+
+| 成果物（Vault `biwa/`） | fps | 長さ | サイズ |
+|---|---:|---:|---:|
+| `biwa_overturn_terrain.mp4` | 12 | 10秒 | 1.8 MB |
+| `biwa_overturn_terrain_slow.mp4` | 6 | 20秒 | 2.3 MB |
+| `fig_overturn_terrain_0130.png` | — | — | 代表フレーム（1月30日） |
+
+- 動画用の地形は **stride 4**（`biwa_terrain_low_deep60.usdc`、131万頂点）。
+  stride 2 では 120フレームが重い。**約5秒/フレーム**で全体10分
+- `_overlay_movie.py` は **USDの読み込みを1回だけ**にして
+  `render(animation=True)` に任せる。フレームごとに再読み込みすると桁違いに遅い
+- **カメラは固定。** 粒子の bbox はフレームごとに変わるので、
+  毎フレーム合わせるとカメラが揺れて見づらい。frame 60 の bbox で固定した
+
+##### 【罠】日付は 2日/フレームではない
+
+ソルバは **240日を119区間**で割るので **2.0168 日/フレーム**。
+`2*k` で計算すると **frame 60 以降が1日、最後は2日ずれる**。
+
+```
+day = int(k * 240 / 119)      # frame 0 = 10月01日
+```
+
+`make_convection.py` が10フレーム刻みで印字する日付13行すべてと照合して確定した
+（`2*k` は 6/13 しか合わない）。**ラベルを焼く前に必ずソルバの出力と突き合わせること。**
+
+##### 焼き込む値の方針
+
+**日付・固定パラメータ・進行バー・出典表示だけ**を焼いた。
+混合層・表層接触・表層水温は**10フレーム刻みでしか出力されていない**ので、
+内挿した値は載せない。図が独り歩きしたときに嘘になる（§6⑤）。
+
+**出典表示はヘッダの暗い帯に置くこと。** 地形の上に重ねると明色に埋もれて
+読めなくなる。地理院タイルの表示義務を満たせない。
+
+##### 中間生成物（`sym/`、再生成できる）
+
+| | 内容 |
+|---|---|
+| `ov_shots/` | 素のPNG連番 120枚（223 MB） |
+| `ov_lab/` | ラベル焼き込み済み 120枚 |
+
 ### 4.7.11 追加ファイル
 
 | ファイル | 役割 |
@@ -1065,6 +1118,8 @@ Blender では POINTCLOUD の `radius` 属性を `foreach_get/set` で書き換�
 | `_to_glb.py` | USD → glTF/GLB（Blender経由、Draco 任意） |
 | `make_overlay_usd.py` | 地形USD＋粒子USD → 1シーン（Zオフセット付き） |
 | `_overlay_check.py` | 重ね合わせを Blender で1フレーム描画 |
+| `_overlay_movie.py` | 重ね合わせを PNG連番で書き出す（読み込み1回）|
+| `_label_movie.py` | PNG連番に日付ラベルを焼く |
 
 ---
 
