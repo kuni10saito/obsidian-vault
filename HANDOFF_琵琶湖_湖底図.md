@@ -854,7 +854,7 @@ z = 標高 * ve                          （陸）
 
 **教訓：湖の端が直線なら、それは湖岸線ではなく格子の縁を疑う。**
 
-### 4.7.9 【制約】粒子USDとは鉛直方向に重ならない
+### 4.7.9 【解決済み】粒子USDとは鉛直方向に重ならなかった
 
 **水平は一致する**（原点が同じ）。実測：
 
@@ -874,6 +874,8 @@ z = 標高 * ve                          （陸）
 
 の2つが必要。`make_terrain_usd.py` の docstring は「既存の粒子USDとそのまま
 重なる」と書いているが、**それは水平だけ**である。
+
+**→ §4.7.13 で `make_overlay_usd.py` として解決済み。**
 
 ### 4.7.10 実行例
 
@@ -979,6 +981,80 @@ python make_terrain_usd.py --stride 8 --ve 3 --lake-ve 10 \
 blender -b -P _to_glb.py -- <入力.usdc> <出力.glb> <draco 0|1> <scale>
 ```
 
+### 4.7.13 粒子との重ね合わせ【2026-08-30 完了】
+
+§4.7.9 の制約（地形USDと粒子USDが鉛直方向に重ならない）を解いた。
+`make_overlay_usd.py` が2つのUSDを参照で1シーンに合成する。
+
+#### スケールの対応
+
+```
+地形 : z = 84.4*ve_land − 水深*lake_ve      （湖内）
+粒子 : z = −水深*ve                          （湖面が 0）
+```
+
+**基準面が違う**ので、重ねるには2つとも要る。
+
+1. **粒子の `--ve` と 地形の `--lake-ve` を揃える**
+2. **粒子を `+84.4 * ve_land` 持ち上げる**（陸3倍なら **+253.2**）
+
+採用値は **ve_land=3 / lake_ve=ve粒子=60**。60 を選んだのは、
+**10 では鉛直構造が潰れて全層循環が読めない**ため（104m が 64km 幅の中で
+1:61 になる）。地理的な正しさより**見やすさを取る**判断。
+
+```bash
+python make_terrain_usd.py --stride 2 --ve 3 --lake-ve 60 --out biwa_terrain_mid_deep60.usdc
+python make_convection.py --ve 60 --out biwa_convection_ve60.usdc
+python make_overlay_usd.py     # 既定でこの2本を合成、+253.2 を適用
+```
+
+#### 実装
+
+- 両USDを `AddReference` で `/World/Terrain` と `/World/Particles` に置く
+- 粒子側に `AddTranslateOp` で `(0, 0, 84.4*ve_land)`
+- **粒子USDが持つ `LakeBottom` は地形と二重になるので `SetActive(False)`**
+- 時間（`startTimeCode` / `endTimeCode` / `fps`）は粒子側から引き継ぐ
+
+#### 検証（ワールド座標で実測）
+
+| プリム | z レンジ |
+|---|---|
+| `Terrain` | −5942.6 〜 3753.8 |
+| `WaterSurface` | 253.2（平ら） |
+| `Convection` f0 | **−5875.7 〜 252.7** |
+| `Convection` f119 | −5837.8 〜 253.0 |
+
+**粒子の上端 252.7〜253.0 が湖面 253.2 と一致**し、下端は湖盆の内側。
+水平も地形の範囲に収まる。`/World/Particles/LakeBottom` は非アクティブ。
+
+#### 描画で踏んだこと
+
+**① 仰角 9度では手前の陸が湖盆を隠す。**
+湖は地形の「窪み」なので、低い視点だと手前の縁で中が見えない。
+**22度**（`make_convection_blend.py` が湖全体版に使っている角度）が正解。
+低い視点で見たいなら §6③ に従って地形側を半透明にするか、断面を切る。
+
+**② 粒子半径 474m は ve=60 の湖では大きすぎる。**
+四角い板が並んだように見える。**×0.35（83m）**に縮めた。
+Blender では POINTCLOUD の `radius` 属性を `foreach_get/set` で書き換える。
+
+**③ 点群に `ShaderNodeVertexColor` は効かない。**
+`ShaderNodeAttribute`（属性名 `displayColor`）を使う（§4.6 と同じ）。
+水中に埋まるので Emission Strength 2.5 を入れないと影に潰れる。
+
+**④ EEVEE では点群が正方形のビルボードで出る。** 球にしたいなら Cycles。
+
+#### 結果
+
+`biwa/fig_overlay_terrain.png` に 4フレームを並べた。
+
+| 日付 | 混合層 | 表層接触 | 見え方 |
+|---|---:|---:|---|
+| 11月10日 | 16.1m | 0.0% | 暖かい表層（クリーム）が薄く乗る |
+| 12月20日 | 35.1m | 0.0% | 冷えて混合層が下へ |
+| **01月30日** | **104.1m** | **87.7%** | **全層が一様な青＝全層循環** |
+| 05月10日 | 3.3m | 100% | 再成層。表層が暖まる |
+
 ### 4.7.11 追加ファイル
 
 | ファイル | 役割 |
@@ -987,6 +1063,8 @@ blender -b -P _to_glb.py -- <入力.usdc> <出力.glb> <draco 0|1> <scale>
 | `make_terrain_usd.py` | DEM＋湖底 → 地形USD（湖面・UV・テクスチャ付き） |
 | `_terrain_check.py` | Blender でUSDを読み、プリム構成を出して静止画を撮る |
 | `_to_glb.py` | USD → glTF/GLB（Blender経由、Draco 任意） |
+| `make_overlay_usd.py` | 地形USD＋粒子USD → 1シーン（Zオフセット付き） |
+| `_overlay_check.py` | 重ね合わせを Blender で1フレーム描画 |
 
 ---
 
