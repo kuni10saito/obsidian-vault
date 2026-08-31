@@ -645,6 +645,80 @@ RuntimeError: normal expects all elements of std >= 0.0
 
 ---
 
+# 🎯 Sim → 実機 ミラーリング（2026-08-31 実現）
+
+Isaac Lab の**シミュレーションを実際に走らせながら**、シム内ロボットの関節位置を
+リアルタイムで実機に送る方式。ONNX単独推論とは別のアプローチ。
+
+動画：![[その他/so101_Sim2Real_ミラーリング_20260831.mp4]]
+
+## 🏆 結果：初めて全6関節が動いた
+
+| 関節 | HOME | ミラーリング後 | ONNX単独推論では |
+|---|---|---|---|
+| shoulder_pan | 1506 | 2710 | ✅ |
+| shoulder_lift | 2250 | 2212 | ✅ |
+| **elbow_flex** | 1483 | **1340** | 1480以下に行けなかった |
+| **wrist_flex** | 2370 | **1646** | **全テストで2350付近に固着** |
+| wrist_roll | 2439 | 2333 | ✅ |
+| gripper | 3100 | 3463 | ✅ |
+
+## 💡 なぜ `wrist_flex` が動いたのか（重要な洞察）
+
+**送っているものが違う。**
+
+| 方式 | 実機に送る値 | 性質 |
+|---|---|---|
+| ONNX単独推論 | `action_to_target_rad(action)` = **ポリシーの生の指令** | シム内でも到達していない瞬間的な設定値 |
+| **ミラーリング** | `robot.data.joint_pos` = **シム内ロボットの実際の位置** | シムの物理・PD制御を経て**実現された**軌道 |
+
+ONNX方式では `wrist_flex` に 2432（持ち上げ方向）を指令していたが、
+これは**シム内でも到達していない目標値**だった。実機は当然そこへ行けず固着した。
+
+ミラーリングでは、シム内のPD制御が実際に到達した位置（1646＝下げ方向）を送る。
+**重力に逆らわない、物理的に実現可能な軌道**なので実機も追従できる。
+
+> **教訓：ポリシーの「指令」ではなく、シムの「実現された状態」を送るほうが実機で動く。**
+> シムの物理エンジンが「実行可能性のフィルタ」として機能している。
+
+## 実装
+
+`src/isaac_so_arm101/scripts/rsl_rl/sim2real_mirror.py`
+（`play.py` を複製し、パッチ `Desktop/so101_rl/patch_mirror.py` で改造）
+
+追加した処理：
+1. **CLI引数**：`--servo_port` / `--max_servo_step` / `--mirror_dry_run` / `--duration`
+2. **ループ前**：シリアルを開き、目標=現在位置を書いてからトルクON（飛び防止）
+3. **`env.step()` 直後**：`robot.data.joint_pos[0]` をサーボ値に変換し、
+   レート制限＋`MOTOR_LIMITS`クランプを掛けて `sync_write`
+4. **終了時**：シリアルを閉じる
+
+関節の対応は `robot.data.joint_names` から動的に取得する（順序の思い込みを避けるため）。
+
+### 実行
+
+```bash
+cd /home/saito/isaac_so_arm101
+export TERM=xterm; export OMNI_KIT_ACCEPT_EULA=YES
+export LD_PRELOAD="$LD_PRELOAD:/lib/aarch64-linux-gnu/libgomp.so.1"
+.venv/bin/python /home/saito/nofuse_launch.py \
+  src/isaac_so_arm101/scripts/rsl_rl/sim2real_mirror.py \
+  --task Isaac-SO-ARM101-Reach-Play-v0 --headless --num_envs 1 \
+  --checkpoint <run>/model_300.pt \
+  --servo_port /dev/ttyACM1 --max_servo_step 15 --duration 32
+```
+
+`--mirror_dry_run` を付ければ実機に送らず動作確認だけできる。
+
+### ハマった点
+
+| 症状 | 対処 |
+|---|---|
+| `ModuleNotFoundError: No module named 'serial'` | isaac venv に pyserial が無い。**pipも入っていない**ので `uv pip install --python .venv/bin/python pyserial` |
+| SSH経由のヒアドキュメントが壊れる | パッチスクリプトをローカルで作成 → `scp` → リモートで実行する方式に変更 |
+
+---
+
 ## 次のステップ（実機が必要）
 
 `Desktop/run_groot.py` が既に **SO-101 の関節状態を読み、目標値を書き込む**構造になっている。
