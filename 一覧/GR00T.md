@@ -1,6 +1,6 @@
 # GR00T SO-101 作業ガイド
 
-> **このノートは Windows 側の `C:/Users/saito/CLAUDE.md` のミラー**。最終同期 2026-09-06。
+> **このノートは Windows 側の `C:/Users/saito/CLAUDE.md` のミラー**。最終同期 2026-09-07（自動）。
 > （このファイルだけ DGX Spark ではなく FMV ローカルのパス。他は全て Spark 上のパス）
 > 実際に Claude Code が読むのは CLAUDE.md 側なので、**編集は CLAUDE.md を正とし、こちらへ同期する**。
 > 以前この2ファイルが黙って分岐し、両方に「存在しないモデルパス」が残ってサーバーが起動しない事故が起きた。
@@ -213,7 +213,7 @@ ps aux | grep "[r]un_gr00t"
 # tmuxセッション確認
 tmux list-sessions
 
-# GPU使用確認
+# GPU使用確認（学習中はサーバーを落とすこと。OOM競合する）
 nvidia-smi
 
 # チェックポイント確認（全ラン横断）
