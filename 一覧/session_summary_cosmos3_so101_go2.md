@@ -1,0 +1,105 @@
+# セッションまとめ：Cosmos 3・SO-101・GR00T・Go2 Pro
+
+日付：2026-09-06〜09-09
+
+---
+
+## Cosmos 3 と実行環境
+
+- Cosmos 3（NVIDIA、2026年6月）：言語・画像・動画・音声・行動を単一MoTモデルで理解も生成もするオムニモーダル世界モデル。Nano（16B）／Super（64B）公開、Edge（4B）は後日
+- 必要スペック：Nano生成は80GB級GPU1枚、Superはfp8でH100×2以上。Reasoner（理解塔）だけなら12GB GPUでも可（INT4版）
+- 手元環境での使い分け
+  - H100×3：Nanoフル＋Super（fp8, TP=2）、3枚目はNano/Reasoner常駐に
+  - DGX Spark：Nano全機能を単体で試せる（遅いが動く）。128GBなのでReasonerは4bit不要、NVFP4は速度目的（NVIDIA公式のNVFP4/FP8版がNGCにあり）
+  - A6000：Reasoner専用
+- SO-101はCosmos 3の公式サポート対象だが、公開ポリシーはDROID（Franka）用。自前ポストトレーニングが前提。現実的にはCosmosは合成データ拡張役
+
+## NVIDIA Sim-to-Real SO-101教材
+
+- 正式名：Train an SO-101 Robot From Sim-to-Real With NVIDIA Isaac（16モジュール）
+- タスク：散らばったバイアル（50ml遠沈管）を黄色ラックへ入れる
+- 戦略1〜4：ドメインランダマイゼーション／実機との共同学習／Cosmos拡張／SAGE+GapONet（アクチュエーションギャップ計測）
+- 追加機材
+  - ライトボックス：市販80cm撮影ボックスで代用可（PULUZ 80cmアップグレード版は要件を満たす。前面全開・カメラ固定手段を確認）
+  - 50ml遠沈管：Amazonで10本1,000円程度、円錐底・青キャップ
+  - 黄色ラック：Printables公開モデルを3Dプリント（インフィル5%可）
+  - 黒EVAマット
+- 組み方：SO-101を机にクランプ→箱を上から被せる。外部カメラは背面から高さ40cm・27cm手前・45°下向き。位置はマスキングテープでマーキング
+- シム遠隔操作（戦略1）はライトボックス不要、リーダーアームのUSB接続のみ。公開データセットを使えば実機ゼロで学習・評価まで可能
+
+## GR00T学習の現状（Claude Codeで調査）
+
+- Spark上に21ラン・71チェックポイント、全完走（global_step = max_steps、epoch 1.0、batch 32）
+- N1.6系3ラン、N1.7系18ラン。実機データv2〜v8z2、Isaac合成color系（300ep×3世代）、Cosmos拡張c0_cosmos62
+- 問題点
+  - CLAUDE.mdの「現用」so101_ft_v2が消失（バックアップ `so101_models_backup/checkpoint-1000_v2_20260528` あり）
+  - 系譜切れ2件（v17/cp-3000、color4_pretrain/cp-2500 削除済み）
+  - ディスク83%。optimizer.pt削除で約900GB回収可
+- 未着手は評価。提案する比較ペア
+  - c0_real/cp-3000 vs c0_cosmos62/cp-3000（Cosmos拡張の効果）
+  - v6/cp-3000 vs color3_real/cp-2000（合成事前学習の効果）
+  - v18/cp-10000 vs v19/cp-3000（最良候補の確認）
+- 物体一致の確認
+  - 実機：4cm木製ブロック（無塗装の木目＋透明クリヤー）
+  - シム：Isaac Lab付属DexCubeに `PreviewSurfaceCfg(diffuse_color)` で単色を貼っただけ（`collect_groot_demos_v2.py`、環境変数 `OBJ_COLOR`）
+  - → 視覚ギャップの原因候補。木材MDL＋roughness＋テクスチャ回転ランダム化で `color6` を作り、`color5_real` と比較する提案
+  - DexCubeのscaleが4cm相当か要確認
+
+## 概念整理
+
+- サロゲート：工学（軽い代理モデル）、3DCG（プロキシ形状）、世界モデル（現実の代役）、統計（サロゲート損失）
+- ACT（〜100M、単一タスク、8〜12GB）／SmolVLA（〜450M、言語指示、24GB）／GR00T（数B、汎化、48GB以上）
+- 実機→シム→実機（Real2Sim2Real）の循環。読んだ記事の多くはシム内で完結しており実機は未使用
+
+## G1 / Go2 Pro 関連
+
+- Isaac LabでG1歩行を学習した記事はシムのみ。実機に載せるにはEDU＋DR込み再学習＋sim2sim（MuJoCo）検証＋吊り具が必要
+- 価格：G1標準版は200万円台、EDUは650万〜1,100万円（標準からEDUへの変更不可）。日本代理店はTechShare
+- Go2 Proでできること：WebRTC経由の高レベル制御（速度指令、定型動作、階段モード16cm/40°、カメラ・LiDAR取得、障害物回避ON/OFF）
+- Go2 Proでできないこと：関節レベル制御・自作歩容・バク転・転倒回復（EDU必要）
+- 「自在に歩かせる」はPro可、「歩き方を設計する」はEDU
+- GR00Tは歩容ではなく上位判断（速度指令3次元）に使う二層構成が正解。階段も上位が正対→モードON、脚は純正
+- 学習データはシム（Isaac LabのGo2シーン）＋Cosmosで作れる。実機は評価と仕上げのみ
+- 簡単な指示ならファインチューンなしのVLM（Cosmos 3 Reasoner）で動く（1秒ごとに4択FORWARD/LEFT/RIGHT/STOP）
+- コントローラ不要：設定はスマホアプリ、操縦データ収集はPCゲームパッド＋自作スクリプト
+- Air vs Pro：モーター出力・速度（2.5 vs 3.5 m/s）・CPU・スピーカー・ライト。PC制御ならCPU差は効かず、階段・音声デモが要るならPro
+- 教室デモ案（90分）：ゼロショット「赤い箱まで行け」→失敗を見せる→学生がプロンプトを書いて成功率比較→経営判断の議論
+
+## 授業構成案
+
+### 15回版（4ブロック）
+- A 座標で動く（1〜3）：概論／SO-101操縦／座標既知＋IK
+- B 人の動きを真似る（4〜7）：データ収集／ACT／汎化の壁／SmolVLA
+- C 基盤モデルとシム（8〜11）：GR00T／Sim-to-Real／Cosmos拡張／評価設計
+- D 移動ロボット（12〜15）：Go2操縦／VLM制御／SO-101統合／経営判断
+
+### 8回版
+1. フィジカルAIとは＋SO-101操縦
+2. 座標で動かす（IK）
+3. 人の動きを真似る（ACT）
+4. 基盤モデル（GR00T／SmolVLA）
+5. シムと世界モデルで増やす
+6. 移動するロボット（Go2＋VLM）
+7. 統合（Go2＋SO-101）
+8. 経営判断
+
+設計方針：4cm木製ブロックのタスクを一貫させ、各ブロック末に「限界」を見せて次の動機にする。成功率測定を統計学（区間推定→2群検定→多群比較）と接続
+
+## 論文・記事の要約
+
+- **Cosmos 3技術レポート（arXiv:2606.02800）**：MoT二塔（Reasoner＝AR、Generator＝拡散）、行動を第一級モダリティ化、3D MRoPE＋絶対時間、構造化JSONキャプション、Artificial Analysis／RoboArenaでオープン最良、OpenMDW-1.1ライセンス
+- **香川氏「VLA完全整理」（2026-08-22）**：VLAは単体でなくシステム。日本企業は既存モデルを部品にした業務特化（Vertical VLA）で「業務成功率」を売れ。条件別成功率とFailure Taxonomyの重要性
+- **FCTX「デモ卒業」（2026-07-19）**：Isaac Sim 6.0.1内蔵アセット（CRX20iA/L＋Robotiq 2F-85＋D455）をRobot AssemblerでGUI組立。ハマりどころはAssembler後の位置ずれとRigid Body削除
+- **FCTX「座標既知＆自作IK」（2026-07-21）**：ヤコビアン＋DLS（＝リッジ回帰）と7フェーズ状態機械でシム内ピッキング。実機なし
+- **スペクトラム社「isaac-sim学習キット」**：公式チュートリアルの再パッケージ商品。不要
+- **OT「Docker＋Isaac Lab 3.0でG1」（2026-07-26）**：環境構築記事。SSHではWebRTC映像が見えない問題をChrome Remote Desktopで回避。Tailscale環境なら直接Web Viewerで代替可
+- **Classmethod「Go2バク転」**：報酬設計の失敗談。シムのみ、実機はEDU必要
+- **teddy「Pic2Grasp」（2026-08-26）**：写真4〜5枚→SAM3→MV-SAM3D→CoACD→MJCF/URDF/USD。VRAM 24GB推奨。木製ブロックは単純形状なので今回は不要
+
+## 次のアクション
+
+1. CLAUDE.mdのN1.6起動パスをバックアップに差し替え
+2. optimizer.pt削除（比較に使う6つと各系列の最終CPは残す）
+3. c0_real vs c0_cosmos62 を実機またはシムで各10〜20試行、成功率と失敗分類を記録
+4. Isaac Labのブロックに木材マテリアルを当てて `color6` を生成
+5. ライトボックス・遠沈管・ラックの調達、実機組み直し
