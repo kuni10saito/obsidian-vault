@@ -7,7 +7,7 @@ updated: 2026-08-30
 # Isaac Lab 歩行学習（H1 / Go2）作業ガイド
 
 DGX Spark 上で Unitree H1（二足）と Go2（四足）を強化学習させ、**シミュレーション内で歩行を獲得**するまでの記録。
-関連：[[一覧/GR00T]]（SO-101 模倣学習側）／[[Clippings/第14章　Isaac SimによるReal-to-Simシミュレーション]]
+関連：[[GR00T　2026-09-07]]（SO-101 模倣学習側）／[[Clippings/第14章　Isaac SimによるReal-to-Simシミュレーション]]
 
 ---
 
@@ -351,7 +351,7 @@ GPU使用率は91%で正常稼働しており**誤設定ではない**——「�
 | tmux セッションが即終了する | スクリプトファイルに書き出してから `tmux new-session -d -s <名前> <script>` で起動する（ネストしたクォートは壊れる） |
 | SSH セッションが突然切れる | `pkill -f run_gr00t_server` が**自分のコマンドラインに自己マッチ**して親シェルを殺している。`pkill -f "run_gr00t_serve[r]"` と書くか、事前に `ps` で確認して実行しない |
 | `rl-games` の psutil 依存エラー | rsl_rl を使う限り無害。無視してよい |
-| GPU競合 | 学習前に GR00T サーバーを停止（[[一覧/GR00T]] の鉄則） |
+| GPU競合 | 学習前に GR00T サーバーを停止（[[GR00T　2026-09-07]] の鉄則） |
 | `ssh: connect to host ... Permission denied` | **認証エラーではなくネットワーク経路の遮断**。下記「移動先で繋がらない時」を参照 |
 
 ### 移動先で DGX Spark に繋がらない時（2026-08-30 実例）
