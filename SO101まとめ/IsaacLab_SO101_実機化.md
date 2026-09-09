@@ -30,12 +30,12 @@ Go2 EDU（$11,190〜）を買う前に、所有済みの SO-101 で sim-to-real 
 
 `isaac_so_arm101` は **uv で独自に Isaac Sim を pip 導入**しており、`~/IsaacLab`（ソース版）とは完全に別環境。
 
-| | `~/IsaacLab`（H1/Go2） | `isaac_so_arm101`（SO-101） |
-|---|---|---|
-| Isaac Sim | ソースビルド版 5.1.0 | **pip版** 5.1.0 |
-| torch | 2.9.0+**cu130** | 2.7.0+**cu128**（`isaacsim` が厳密固定） |
-| nvrtc | CUDA 13（sm_121対応） | CUDA 12.8（**sm_121 非対応**） |
-| 実行方法 | `./isaaclab.sh -p <script>` | `.venv/bin/python <script>` |
+|           | `~/IsaacLab`（H1/Go2）        | `isaac_so_arm101`（SO-101）         |
+| --------- | --------------------------- | --------------------------------- |
+| Isaac Sim | ソースビルド版 5.1.0               | **pip版** 5.1.0                    |
+| torch     | 2.9.0+**cu130**             | 2.7.0+**cu128**（`isaacsim` が厳密固定） |
+| nvrtc     | CUDA 13（sm_121対応）           | CUDA 12.8（**sm_121 非対応**）         |
+| 実行方法      | `./isaaclab.sh -p <script>` | `.venv/bin/python <script>`       |
 
 ---
 
