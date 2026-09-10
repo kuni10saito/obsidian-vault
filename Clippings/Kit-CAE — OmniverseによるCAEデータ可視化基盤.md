@@ -37,7 +37,6 @@ NVIDIA 公式の Omniverse Kit サンプルアプリ。CAE（数値解析）デ�
 ## 6. 自分のワークフローとの関係
 - **対象領域が違う**：Kit-CAE は解析データの可視化。Isaac Sim / Isaac Lab はロボットの物理シミュレーション
 - **土台は共通**：どちらも Omniverse Kit 上のアプリ。拡張機能の作り方や `.kit` ファイルによる構成定義は同じ流儀なので、片方を覚えればもう片方に流用が効く
-- Isaac Sim 側の理解は [[Clippings/第14章　Isaac SimによるReal-to-Simシミュレーション.md]]、[[Clippings/第15章　Isaac SimとNVIDIA Cosmosの統合関係.md]] を参照
 - シミュレーションからのデータ収集〜学習の流れは [[Clippings/「LeIsaac」入門：シミュレーションでのデータ収集からポリシー学習まで.md]]
 
 ## 参考リンク
