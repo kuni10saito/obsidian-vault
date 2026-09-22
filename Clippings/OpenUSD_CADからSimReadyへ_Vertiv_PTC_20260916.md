@@ -1,5 +1,11 @@
 ---
-tags: [OpenUSD, Omniverse, SimReady, CAD, PLM, エージェント, デジタルツイン]
+tags:
+  - OpenUSD
+  - Omniverse
+  - SimReady
+  - CAD
+  - エージェント
+  - デジタルツイン
 created: 2026-09-21
 source: https://www.youtube.com/watch?v=zW0wzeAWLvo
 channel: NVIDIA Omniverse
@@ -14,13 +20,13 @@ duration: 1:13:22
 
 **登壇者**
 
-| 所属 | 名前 | 担当 |
-|---|---|---|
-| NVIDIA | Adam Hughes | データセンター／AIファクトリ（DSX ブループリント） |
-| NVIDIA | Renato | Isaac チーム。ロボティクスと USD 規格、エージェント型ワークフロー |
-| Vertiv | Adash | 上級ディレクター。シミュレーションとエンジニアリング支援 |
-| Vertiv | Hesh | エンジニアリング部長。デジタルエンジニアリング |
-| PTC | Steve | 製品エンジニアリング。USD 全般 |
+| 所属     | 名前          | 担当                                     |
+| ------ | ----------- | -------------------------------------- |
+| NVIDIA | Adam Hughes | データセンター／AIファクトリ（DSX ブループリント）           |
+| NVIDIA | Renato      | Isaac チーム。ロボティクスと USD 規格、エージェント型ワークフロー |
+| Vertiv | Adash       | 上級ディレクター。シミュレーションとエンジニアリング支援           |
+| Vertiv | Hesh        | エンジニアリング部長。デジタルエンジニアリング                |
+| PTC    | Steve       | 製品エンジニアリング。USD 全般                      |
 
 ---
 
@@ -52,11 +58,11 @@ STEP ファイル
 
 だから3段構えになる。
 
-| 段 | 何をするか | 誰が |
-|---|---|---|
-| ① 変換 | 形状を USD にする | 従来からある |
-| ② **材質化** | 見た目を作る | **AI。「ついでにやってくれるので、ただで手に入る」** |
-| ③ **SimReady 化** | シミュレーションに要るメタデータを付ける | **AI。検証まで回す** |
+| 段                | 何をするか                | 誰が                            |
+| ---------------- | -------------------- | ----------------------------- |
+| ① 変換             | 形状を USD にする          | 従来からある                        |
+| ② **材質化**        | 見た目を作る               | **AI。「ついでにやってくれるので、ただで手に入る」** |
+| ③ **SimReady 化** | シミュレーションに要るメタデータを付ける | **AI。検証まで回す**                 |
 
 **形だけ移してもシミュレーションには使えない**、というのが全体の動機。
 
@@ -127,11 +133,11 @@ usd-convert-cad -i input.step -o output.usdc
 
 対応形式は30以上。
 
-| 種別 | 形式 |
-|---|---|
+| 種別  | 形式                                                         |
+| --- | ---------------------------------------------------------- |
 | CAD | JT, CATIA V5/V6, NX, Creo, SolidWorks, Inventor, Parasolid |
-| AEC | IFC, Revit, DGN, AutoCAD (DWG/DXF) |
-| 交換 | STEP, IGES, STL, FBX, OBJ, glTF, Rhino |
+| AEC | IFC, Revit, DGN, AutoCAD (DWG/DXF)                         |
+| 交換  | STEP, IGES, STL, FBX, OBJ, glTF, Rhino                     |
 
 > **Linux aarch64 では AutoCAD と Revit が非対応。** DGX Spark（GB10）で使うならこの2つは落ちる。
 
