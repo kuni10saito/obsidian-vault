@@ -1,0 +1,16 @@
+# 2026-09-24 追加。
+# core.autocrlf=true のため、git が触るとテキストが CRLF に変換され、
+# 作業ツリー（LF主体）との不一致で全行が差分として出る事故が起きていた。
+# 作業ツリーの改行を LF に固定してこれを防ぐ。
+* text=auto eol=lf
+
+# バイナリは変換対象外にする（自動判定に任せず明示）
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.mp4  binary
+*.pdf  binary
+*.zip  binary
+*.onnx binary
+*.canvas text eol=lf
