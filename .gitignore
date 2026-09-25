@@ -20,3 +20,8 @@ Thumbs.db
 # Editor/tool junk
 *.tmp
 *.swp
+
+# Cosmos Transfer の生成動画（15本・147MB）。2026-09-25 に Downloads から移設。
+# Vault では閲覧できるが、公開GitHubリポジトリを肥大させないため同期しない。
+# ★この行があるため、この接頭辞のmp4はコミットされない。バックアップは別途取ること。
+その他/so101_Cosmos_*.mp4
